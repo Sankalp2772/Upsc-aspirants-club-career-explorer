@@ -1,0 +1,8 @@
+{
+  "name": "FIRST GLIMPSE - Government Examinations & Careers Explorer",
+  "description": "Interactive visual presentation exploring Indian Government Examinations and career pathways, created by UPSC Aspirants Club, KLE Technological University, Hubballi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

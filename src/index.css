@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --color-brand-blue: #0066ff;
+  --color-brand-cyan: #00c2ff;
+  --color-brand-dark: #0a0d14;
+}
+
+/* Custom modern scrollbars and typography smoothing */
+body {
+  font-family: var(--font-sans);
+  background-color: #f8fafc;
+  color: #0f172a;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Fluid blue silk mesh & wave simulation backdrop matching the reference image */
+.blue-fluid-wave-bg {
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0) 0%, rgba(224, 242, 254, 0.4) 30%, rgba(56, 189, 248, 0.3) 60%, rgba(2, 132, 199, 0.85) 90%, #0284c7 100%);
+}
+
+.blue-glow-sphere {
+  background: radial-gradient(circle, rgba(0, 163, 255, 0.35) 0%, rgba(0, 102, 255, 0.15) 50%, rgba(255, 255, 255, 0) 80%);
+}
+
+
