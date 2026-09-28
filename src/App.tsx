@@ -1,228 +1,244 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  ALL_CHAPTERS,
-  FLATTENED_SLIDES,
-  getSlideAtPosition,
-  getNextPosition,
-  getPrevPosition,
-  findPositionByChapterId,
-  findPositionBySectionId
-} from './data/presentationRegistry';
-import { NavigationPosition } from './types/presentation';
-import { PresentationHeader } from './components/PresentationHeader';
-import { PresentationFooter } from './components/PresentationFooter';
-import { SlideRenderer } from './components/SlideRenderer';
-import { ChapterNavigatorModal } from './components/ChapterNavigatorModal';
-import { LandscapeModal } from './components/LandscapeModal';
+import React, { useState, useEffect } from 'react';
+import { Navbar, ActiveTab } from './components/Navbar';
+import { Footer } from './components/Footer';
+import { CareerExplorerHome } from './components/CareerExplorerHome';
+import { CareerDetailView } from './components/CareerDetailView';
+import { CareerComparator } from './components/CareerComparator';
+import { CareerQuiz } from './components/CareerQuiz';
+import { LbsnaaExperienceView } from './components/LbsnaaExperienceView';
+import { CutoffsAnalyticsView } from './components/CutoffsAnalyticsView';
+import { FoundationsView } from './components/FoundationsView';
+import { SavedCareersModal } from './components/SavedCareersModal';
+import { PresentationMode } from './components/PresentationMode';
+import { CAREER_PROFILES } from './data/careerExplorerData';
 
 export default function App() {
-  const [currentPos, setCurrentPos] = useState<NavigationPosition>({
-    chapterIndex: 0,
-    sectionIndex: 0,
-    slideIndex: 0
+  const [activeTab, setActiveTab] = useState<ActiveTab>('explore');
+  const [selectedCareerId, setSelectedCareerId] = useState<string | null>(null);
+  const [comparingIds, setComparingIds] = useState<string[]>(['upsc-cse', 'state-psc']);
+  const [savedIds, setSavedIds] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('upsc_saved_careers');
+      return stored ? JSON.parse(stored) : ['upsc-cse'];
+    } catch {
+      return ['upsc-cse'];
+    }
   });
+  const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
 
-  const [isChapterMenuOpen, setIsChapterMenuOpen] = useState<boolean>(false);
-  const [isLandscapeOpen, setIsLandscapeOpen] = useState<boolean>(false);
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-
-  const currentEntry = getSlideAtPosition(currentPos);
-
-  const currentFlattenedIndex = FLATTENED_SLIDES.findIndex(
-    e =>
-      e.chapterIndex === currentPos.chapterIndex &&
-      e.sectionIndex === currentPos.sectionIndex &&
-      e.slideIndex === currentPos.slideIndex
-  );
-
-  const canPrev = currentFlattenedIndex > 0;
-  const canNext = currentFlattenedIndex < FLATTENED_SLIDES.length - 1;
-
-  const handleNext = useCallback(() => {
-    setCurrentPos(prev => getNextPosition(prev));
-  }, []);
-
-  const handlePrev = useCallback(() => {
-    setCurrentPos(prev => getPrevPosition(prev));
-  }, []);
-
-  const handleGoHome = useCallback(() => {
-    setCurrentPos({ chapterIndex: 0, sectionIndex: 0, slideIndex: 0 });
-    setIsChapterMenuOpen(false);
-    setIsLandscapeOpen(false);
-  }, []);
-
-  const handleJumpToChapter = useCallback((chapterId: string) => {
-    const pos = findPositionByChapterId(chapterId);
-    setCurrentPos(pos);
-    setIsChapterMenuOpen(false);
-    setIsLandscapeOpen(false);
-  }, []);
-
-  const handleJumpToSection = useCallback((chapterId: string, sectionId: string) => {
-    const pos = findPositionBySectionId(chapterId, sectionId);
-    setCurrentPos(pos);
-    setIsChapterMenuOpen(false);
-    setIsLandscapeOpen(false);
-  }, []);
-
-  // Keyboard navigation
+  // Sync saved to localStorage
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // If an input is somehow focused, ignore
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
-        return;
-      }
+    try {
+      localStorage.setItem('upsc_saved_careers', JSON.stringify(savedIds));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [savedIds]);
 
-      if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        handleNext();
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        handlePrev();
-      } else if (e.key === ' ' && !isChapterMenuOpen && !isLandscapeOpen) {
-        e.preventDefault();
-        handleNext();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        if (isLandscapeOpen) {
-          setIsLandscapeOpen(false);
-        } else {
-          setIsChapterMenuOpen(prev => !prev);
+  // URL Hash routing listener for direct shareable links (e.g. #career/upsc-cse)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '').trim();
+      if (!hash) return;
+
+      if (hash.startsWith('career/')) {
+        const id = hash.replace('career/', '');
+        const exists = CAREER_PROFILES.some((c) => c.id === id);
+        if (exists) {
+          setSelectedCareerId(id);
+          setIsPresentationMode(false);
         }
+      } else if (hash === 'compare') {
+        setActiveTab('compare');
+        setSelectedCareerId(null);
+        setIsPresentationMode(false);
+      } else if (hash === 'quiz') {
+        setActiveTab('quiz');
+        setSelectedCareerId(null);
+        setIsPresentationMode(false);
+      } else if (hash === 'lbsnaa') {
+        setActiveTab('lbsnaa');
+        setSelectedCareerId(null);
+        setIsPresentationMode(false);
+      } else if (hash === 'analytics') {
+        setActiveTab('analytics');
+        setSelectedCareerId(null);
+        setIsPresentationMode(false);
+      } else if (hash === 'foundations') {
+        setActiveTab('foundations');
+        setSelectedCareerId(null);
+        setIsPresentationMode(false);
+      } else if (hash === 'presentation') {
+        setIsPresentationMode(true);
+      } else if (hash === 'explore') {
+        setActiveTab('explore');
+        setSelectedCareerId(null);
+        setIsPresentationMode(false);
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleNext, handlePrev, isChapterMenuOpen, isLandscapeOpen]);
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
-  // Fullscreen toggle handler
-  const handleToggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-        setIsFullscreen(false);
-      }
-    }
+  // Update hash when selecting tab or career
+  const handleSelectTab = (tab: ActiveTab) => {
+    setActiveTab(tab);
+    setSelectedCareerId(null);
+    window.location.hash = tab;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    const onFsChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
-  }, []);
+  const handleSelectCareer = (careerId: string) => {
+    setSelectedCareerId(careerId);
+    window.location.hash = `career/${careerId}`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBackToExplorer = () => {
+    setSelectedCareerId(null);
+    window.location.hash = activeTab;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBookmarkToggle = (careerId: string) => {
+    setSavedIds((prev) =>
+      prev.includes(careerId) ? prev.filter((id) => id !== careerId) : [...prev, careerId]
+    );
+  };
+
+  const handleCompareToggle = (careerId: string) => {
+    setComparingIds((prev) => {
+      if (prev.includes(careerId)) {
+        return prev.filter((id) => id !== careerId);
+      }
+      if (prev.length >= 3) {
+        return [prev[1], prev[2], careerId];
+      }
+      return [...prev, careerId];
+    });
+  };
+
+  const handleAddCareerToCompare = (careerId: string) => {
+    setComparingIds((prev) => {
+      if (!prev.includes(careerId) && prev.length < 3) {
+        return [...prev, careerId];
+      }
+      return prev;
+    });
+  };
+
+  const handleRemoveCareerFromCompare = (careerId: string) => {
+    setComparingIds((prev) => prev.filter((id) => id !== careerId));
+  };
+
+  // If user requested Presentation / Projector mode
+  if (isPresentationMode) {
+    return (
+      <PresentationMode
+        onExit={() => {
+          setIsPresentationMode(false);
+          window.location.hash = activeTab;
+        }}
+      />
+    );
+  }
+
+  const selectedCareer = CAREER_PROFILES.find((c) => c.id === selectedCareerId);
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 flex flex-col justify-between selection:bg-sky-500/20 selection:text-sky-950 font-sans relative overflow-x-hidden">
-      {/* Floating Dark Pill Top Bar with Breadcrumbs & Actions */}
-      <PresentationHeader
-        currentEntry={currentEntry}
-        onGoHome={handleGoHome}
-        onOpenChapterMenu={() => setIsChapterMenuOpen(true)}
-        onOpenLandscape={() => setIsLandscapeOpen(true)}
-        onJumpToChapter={handleJumpToChapter}
-        onJumpToSection={handleJumpToSection}
-        isFullscreen={isFullscreen}
-        onToggleFullscreen={handleToggleFullscreen}
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-blue-500/20 selection:text-blue-900 font-sans relative overflow-x-hidden">
+      {/* Top Navbar */}
+      <Navbar
+        activeTab={activeTab}
+        onSelectTab={handleSelectTab}
+        savedCount={savedIds.length}
+        onOpenSaved={() => setIsSavedModalOpen(true)}
+        onTogglePresentationMode={() => {
+          setIsPresentationMode(true);
+          window.location.hash = 'presentation';
+        }}
       />
 
-      {/* Main Presentation Stage with the Vivid Blue Silk Wave Backdrop */}
-      <main className="flex-1 flex items-center justify-center relative py-4 sm:py-6 overflow-x-hidden overflow-y-auto w-full">
-        {/* Subtle mesh & radiant blue ambient glows */}
-        <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-sky-50/50 via-white to-transparent pointer-events-none" />
-        
-        {/* Glowing electric blue & cyan ambient orbs */}
-        <div className="absolute bottom-10 -left-40 w-[600px] h-[450px] rounded-full bg-gradient-to-tr from-[#0052CC] via-[#0066FF] to-[#00D2FF] opacity-35 blur-[90px] pointer-events-none" />
-        <div className="absolute bottom-0 -right-40 w-[700px] h-[500px] rounded-full bg-gradient-to-tl from-[#0284C7] via-[#0EA5E9] to-[#38BDF8] opacity-30 blur-[100px] pointer-events-none" />
+      {/* Main Content Area */}
+      <main className="flex-1 w-full">
+        {selectedCareer ? (
+          <CareerDetailView
+            career={selectedCareer}
+            onBack={handleBackToExplorer}
+            onCompare={handleCompareToggle}
+            onBookmarkToggle={handleBookmarkToggle}
+            isSaved={savedIds.includes(selectedCareer.id)}
+            isComparing={comparingIds.includes(selectedCareer.id)}
+            onSelectAnotherCareer={handleSelectCareer}
+          />
+        ) : (
+          <>
+            {activeTab === 'explore' && (
+              <CareerExplorerHome
+                onSelectCareer={handleSelectCareer}
+                onCompareCareer={handleCompareToggle}
+                onBookmarkToggle={handleBookmarkToggle}
+                savedIds={savedIds}
+                comparingIds={comparingIds}
+                onStartQuiz={() => handleSelectTab('quiz')}
+                onSelectTab={handleSelectTab}
+              />
+            )}
 
-        {/* 3D Fluid Silk Wave Ribbons across lower half (matching reference image) */}
-        <div className="absolute bottom-0 inset-x-0 h-[480px] pointer-events-none overflow-hidden z-0">
-          <svg
-            className="w-full h-full object-cover opacity-90"
-            viewBox="0 0 1440 480"
-            fill="none"
-            preserveAspectRatio="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <defs>
-              <linearGradient id="waveGradPrimary" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#00C2FF" stopOpacity="0.85" />
-                <stop offset="45%" stopColor="#0066FF" stopOpacity="0.95" />
-                <stop offset="100%" stopColor="#003D99" stopOpacity="0.98" />
-              </linearGradient>
-              <linearGradient id="waveGradSecondary" x1="100%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.7" />
-                <stop offset="60%" stopColor="#0284C7" stopOpacity="0.85" />
-                <stop offset="100%" stopColor="#0369A1" stopOpacity="0.95" />
-              </linearGradient>
-              <linearGradient id="silkHighlight" x1="20%" y1="0%" x2="80%" y2="100%">
-                <stop offset="0%" stopColor="#E0F2FE" stopOpacity="0.5" />
-                <stop offset="40%" stopColor="#00C2FF" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#0052CC" stopOpacity="0.1" />
-              </linearGradient>
-            </defs>
+            {activeTab === 'compare' && (
+              <CareerComparator
+                comparingIds={comparingIds}
+                onRemoveCareer={handleRemoveCareerFromCompare}
+                onAddCareer={handleAddCareerToCompare}
+                onSelectCareer={handleSelectCareer}
+              />
+            )}
 
-            {/* Back ambient wave layer */}
-            <path
-              d="M0 340 C 300 240, 600 400, 950 280 C 1200 200, 1380 260, 1440 280 L 1440 480 L 0 480 Z"
-              fill="url(#waveGradSecondary)"
-            />
+            {activeTab === 'quiz' && (
+              <CareerQuiz
+                onSelectCareer={handleSelectCareer}
+                onExploreAll={() => handleSelectTab('explore')}
+              />
+            )}
 
-            {/* Main sweeping foreground silk ribbon */}
-            <path
-              d="M-50 260 C 220 180, 520 340, 850 210 C 1120 110, 1350 220, 1490 190 L 1490 480 L -50 480 Z"
-              fill="url(#waveGradPrimary)"
-            />
+            {activeTab === 'lbsnaa' && (
+              <LbsnaaExperienceView
+                onExploreCareers={() => handleSelectTab('explore')}
+                onSelectCareer={handleSelectCareer}
+              />
+            )}
 
-            {/* Subtle illuminated crest highlight */}
-            <path
-              d="M-50 260 C 220 180, 520 340, 850 210 C 1120 110, 1350 220, 1490 190"
-              stroke="url(#silkHighlight)"
-              strokeWidth="4"
-              fill="none"
-            />
-          </svg>
-        </div>
+            {activeTab === 'analytics' && (
+              <CutoffsAnalyticsView onSelectCareer={handleSelectCareer} />
+            )}
 
-        <SlideRenderer
-          currentEntry={currentEntry}
-          onNext={handleNext}
-          onJumpToChapter={handleJumpToChapter}
-          onJumpToSection={handleJumpToSection}
-          onOpenLandscape={() => setIsLandscapeOpen(true)}
-        />
+            {activeTab === 'foundations' && (
+              <FoundationsView onSelectCareer={handleSelectCareer} />
+            )}
+          </>
+        )}
       </main>
 
-      {/* Persistent Progress Footer & Controls */}
-      <PresentationFooter
-        currentEntry={currentEntry}
-        onPrev={handlePrev}
-        onNext={handleNext}
-        onOpenChapterMenu={() => setIsChapterMenuOpen(true)}
-        canPrev={canPrev}
-        canNext={canNext}
+      {/* Responsive Footer */}
+      <Footer
+        onSelectTab={handleSelectTab}
+        onSelectCareer={handleSelectCareer}
       />
 
-      {/* Full-Screen Chapter Index Navigator */}
-      <ChapterNavigatorModal
-        isOpen={isChapterMenuOpen}
-        onClose={() => setIsChapterMenuOpen(false)}
-        currentChapterId={currentEntry.chapter.id}
-        onSelectChapter={handleJumpToChapter}
-        onSelectSection={handleJumpToSection}
-      />
-
-      {/* Examination Landscape Overview Modal */}
-      <LandscapeModal
-        isOpen={isLandscapeOpen}
-        onClose={() => setIsLandscapeOpen(false)}
-        onSelectChapter={handleJumpToChapter}
+      {/* Saved Bookmarks Drawer */}
+      <SavedCareersModal
+        isOpen={isSavedModalOpen}
+        onClose={() => setIsSavedModalOpen(false)}
+        savedIds={savedIds}
+        onRemoveSaved={handleBookmarkToggle}
+        onSelectCareer={handleSelectCareer}
+        onCompareCareers={(ids) => {
+          setComparingIds(ids);
+          handleSelectTab('compare');
+        }}
       />
     </div>
   );
